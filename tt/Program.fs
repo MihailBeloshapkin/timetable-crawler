@@ -42,10 +42,11 @@ let ex =
         let new_data =
             hrefs
             |> List.map get_genera_info
-        return hrefs
+            |> List.map Async.RunSynchronously
+            |> List.fold (fun acc -> function | Some x -> x :: acc | _ -> acc) []
+            |> List.rev
+        return new_data
     }
-
-
 
 [<EntryPoint>]
 let main argv =
