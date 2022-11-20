@@ -1,12 +1,16 @@
 ﻿open System
-open System.Net
 open System.Net.Http
 open System.Text.RegularExpressions
-open HtmlAgilityPack
 
 let base_url = "https://timetable.spbu.ru" 
 
-let get_genera_info (url : string) =
+type Data = {
+    subject_name : string;
+    date : string;
+    lecturer_name : string
+}
+
+let process_get_request (url : string) =
     async {
         try
             let client = new HttpClient()
@@ -21,29 +25,27 @@ let get_genera_info (url : string) =
     }
 
 let get_tags html =
-    [for matches in (Regex("<a href\s*=\s*\"?([^\"]+)\"?\s*>", RegexOptions.Compiled)
-    .Matches(html) : MatchCollection) -> matches.Groups.[1].Value]
-
-let get_href_info data =
-    let hd = new HtmlDocument()
-    hd.LoadHtml(data)
-    ()
+    [for matches in (Regex("<a href\s*=\s*\"?([^\"]+)\"?\s*>([^\"]+)</a>", RegexOptions.Compiled)
+    .Matches(html) : MatchCollection) -> (matches.Groups.[1].Value, matches.Groups.[2].Value)]
 
 let ex =
     async {
-        let! data = get_genera_info "https://timetable.spbu.ru"
+        let! data = process_get_request base_url
         let hrefs = 
             match data with 
             | Some x -> 
+              let a = get_tags x
               get_tags x 
-              |> List.filter (fun s -> s.[0] = '/')
-              |> List.map (fun s -> String.concat "" [base_url; s])
+              |> List.filter (fun (s, _) -> String.length s > 0 && s.[0] = '/')
+              |> List.map (fun (s, name) -> (String.concat "" [base_url; s]), name)
             | _ -> []
         let new_data =
             hrefs
-            |> List.map get_genera_info
-            |> List.map Async.RunSynchronously
-            |> List.fold (fun acc -> function | Some x -> x :: acc | _ -> acc) []
+            |> List.map 
+                (fun (s, name) -> 
+                    let html = process_get_request s |> Async.RunSynchronously
+                    (html, name))
+            |> List.fold (fun acc -> function | Some h, name -> (name, h) :: acc | _ -> acc) []
             |> List.rev
         return new_data
     }
