@@ -4,6 +4,8 @@ open System.Text.RegularExpressions
 
 let base_url = "https://timetable.spbu.ru" 
 
+let client = new HttpClient()
+
 type Data = {
     subject_name : string;
     date : string;
@@ -13,13 +15,12 @@ type Data = {
 let process_get_request (url : string) =
     async {
         try
-            let client = new HttpClient()
             let! response = client.GetAsync(url) |> Async.AwaitTask
             response.EnsureSuccessStatusCode () |> ignore
             let! content = response.Content.ReadAsStringAsync() |> Async.AwaitTask
             return Some content
         with
-            | _ -> 
+            | _ ->
                 printfn "Error: failed to access %s" url
                 return None
     }
