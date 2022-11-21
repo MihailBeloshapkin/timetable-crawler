@@ -6,16 +6,26 @@ open web.Views
 open web.Models
 open Crawler.Base
 
-let indexHandler (name : string) =
+module Urls =
+
+    let index = "/"
+    let faculty = "/selectFaculty"
+    let year = "/year"
+
+let indexHandler () =
     let facultyList = get_faculty_list ()
-    let view      = index facultyList
+    let view = facultyList |> List.map snd |> faculties
     htmlView view
 
-let selectHandler =
+let index1Handler () =
+    let view = year ()
+    htmlView view
+
+let selectFacultyHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
         task {
             let! model = ctx.BindFormAsync<web.Models.Faculty>()
-            return! redirectTo false "/" next ctx
+            return! redirectTo false Urls.year next ctx
         }
 
 let inputHandler =
@@ -29,11 +39,12 @@ let webApp : HttpFunc -> Http.HttpContext -> HttpFuncResult =
     choose [
         GET >=>
             choose [
-                route "/" >=> indexHandler "world"
+                route Urls.index >=> indexHandler ()
+                route Urls.year >=> index1Handler ()
             ]
         POST >=>
             choose [
                 route "/input" >=> inputHandler
-                route "/selectSub" >=> selectHandler
+                route Urls.faculty >=> selectFacultyHandler
             ]
         setStatusCode 404 >=> text "Not Found" ]

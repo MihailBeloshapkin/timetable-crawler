@@ -7,18 +7,17 @@ let layout (content: XmlNode list) =
     html [] [
         head [] [
             title []  [ encodedText "web" ]
-            link 
-                [ 
-                    _rel "stylesheet"
-                    _type "text/css"
-                    _href "/main.css" 
-                ]
+            link [ 
+                _rel "stylesheet"
+                _type "text/css"
+                _href "/main.css" 
             ]
+        ]
         body [] content
     ]
 
 let partial () =
-    h1 [] [ encodedText "ZOV" ]
+    h1 [] [ encodedText "Spbu Timetable" ]
 
 let inputData () = 
     form [ _action "/input"; _method "POST" ] [
@@ -37,21 +36,25 @@ let inputData () =
         input [ _type "submit" ]
     ]
 
-let slist fl =
-    form [ _action "/selectSub"; _method "POST"] [
+let flist fl =
+    form [ _action "/selectFaculty"; _method "POST"] [
         select [ _name "Faculty" ] [ 
             for i in fl -> option [] [ str i ]
-            //option [] [str "Math"]; 
-            //option [] [str "Phyth"]; 
-            //option [] [str "INOZ"] 
         ]
         input [ _type "submit" ]
     ]
 
-let index facList =
+let faculties facList =
     [
         partial()
         p [] [ encodedText "Input your data" ]
         // inputData ()
-        slist facList
+        flist facList
     ] |> layout
+
+let year () =
+    [
+        partial()
+        p [] [ encodedText "Right!" ]
+    ]
+    |> layout

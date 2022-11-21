@@ -1,10 +1,11 @@
 body {
+    background-image: url("https://solidmech.com/images/main_intro.jpg");
     font-family: Arial, Helvetica, sans-serif;
-    color: #333;
+    color:black;
     font-size: 1.9em;
 }
 
 h1 {
-    font-size: 1.5em;
+    font-size: 2.5em;
     color: #334499;
 }
