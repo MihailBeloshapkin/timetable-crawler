@@ -3,7 +3,6 @@ module web.Views
 open web.Models
 open Giraffe.ViewEngine
 
-
 let layout (content: XmlNode list) =
     html [] [
         head [] [
@@ -19,7 +18,7 @@ let layout (content: XmlNode list) =
     ]
 
 let partial () =
-    h1 [] [ encodedText "web" ]
+    h1 [] [ encodedText "ZOV" ]
 
 let inputData () = 
     form [ _action "/input"; _method "POST" ] [
@@ -38,9 +37,21 @@ let inputData () =
         input [ _type "submit" ]
     ]
 
-let index () =
+let slist fl =
+    form [ _action "/selectSub"; _method "POST"] [
+        select [ _name "Faculty" ] [ 
+            for i in fl -> option [] [ str i ]
+            //option [] [str "Math"]; 
+            //option [] [str "Phyth"]; 
+            //option [] [str "INOZ"] 
+        ]
+        input [ _type "submit" ]
+    ]
+
+let index facList =
     [
         partial()
-        p [] [ encodedText "Hello" ]
-        inputData ()
+        p [] [ encodedText "Input your data" ]
+        // inputData ()
+        slist facList
     ] |> layout

@@ -1,4 +1,5 @@
-﻿open System
+﻿module Crawler.Base
+open System
 open System.Net.Http
 open System.Text.RegularExpressions
 
@@ -29,6 +30,21 @@ let get_tags html =
     [for matches in (Regex("<a href\s*=\s*\"?([^\"]+)\"?\s*>([^\"]+)</a>", RegexOptions.Compiled)
     .Matches(html) : MatchCollection) -> (matches.Groups.[1].Value, matches.Groups.[2].Value)]
 
+let get_faculty_list () =
+    let t = async {
+        let! data = process_get_request base_url
+        let hrefs = 
+            match data with 
+            | Some x -> 
+              get_tags x 
+              |> List.filter (fun (s, _) -> String.length s > 0 && s.[0] = '/')
+              |> List.map (fun (s, name) -> name)
+            | _ -> []
+        return hrefs
+    }
+    let faculty_list = t |> Async.RunSynchronously
+    faculty_list
+
 let ex =
     async {
         let! data = process_get_request base_url
@@ -51,7 +67,9 @@ let ex =
         return new_data
     }
 
-[<EntryPoint>]
-let main argv =
-    let hrefs = ex |> Async.RunSynchronously
-    0
+
+//[<EntryPoint>]
+//let main argv =
+//    let l = get_faculty_list ()
+//    let hrefs = ex |> Async.RunSynchronously
+//    0
