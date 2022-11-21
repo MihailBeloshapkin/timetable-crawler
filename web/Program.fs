@@ -1,4 +1,4 @@
-module web.App
+module web.Config
 
 open System
 open System.IO
@@ -9,61 +9,7 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
-
-// ---------------------------------
-// Models
-// ---------------------------------
-
-type Message =
-    {
-        Text : string
-    }
-
-// ---------------------------------
-// Views
-// ---------------------------------
-
-module Views =
-    open Giraffe.ViewEngine
-
-    let layout (content: XmlNode list) =
-        html [] [
-            head [] [
-                title []  [ encodedText "web" ]
-                link [ _rel  "stylesheet"
-                       _type "text/css"
-                       _href "/main.css" ]
-            ]
-            body [] content
-        ]
-
-    let partial () =
-        h1 [] [ encodedText "web" ]
-
-    let index (model : Message) =
-        [
-            partial()
-            p [] [ encodedText model.Text ]
-        ] |> layout
-
-// ---------------------------------
-// Web app
-// ---------------------------------
-
-let indexHandler (name : string) =
-    let greetings = sprintf "Hello %s, from Giraffe!" name
-    let model     = { Text = greetings }
-    let view      = Views.index model
-    htmlView view
-
-let webApp =
-    choose [
-        GET >=>
-            choose [
-                route "/" >=> indexHandler "world"
-                routef "/hello/%s" indexHandler
-            ]
-        setStatusCode 404 >=> text "Not Found" ]
+open web.App
 
 // ---------------------------------
 // Error handler
