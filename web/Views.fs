@@ -19,23 +19,6 @@ let layout (content: XmlNode list) =
 let partial () =
     h1 [] [ encodedText "Spbu Timetable" ]
 
-let inputData () = 
-    form [ _action "/input"; _method "POST" ] [
-        div [] [
-            label [] [ str "Faculty" ]
-            input [ _name "Faculty"; _type "text" ]
-        ]
-        div [] [
-            label [] [ str "Speciality" ]
-            input [ _name "Speciality"; _type "text" ]
-        ]
-        div [] [
-            label [] [ str "Year" ]
-            input [ _name "Year"; _type "text" ]
-        ]
-        input [ _type "submit" ]
-    ]
-
 let flist fl =
     form [ _action "/selectFaculty"; _method "POST"] [
         select [ _name "Faculty" ] [ 

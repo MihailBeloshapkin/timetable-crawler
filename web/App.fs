@@ -12,8 +12,23 @@ module Urls =
     let faculty = "/selectFaculty"
     let year = "/year"
 
+module CurrentConfiguration =
+    type Program =
+    | Bacheor
+    | Magistrate
+    | FullGraduate
+    | No
+
+    let mutable facAndUrl = []
+    let mutable facultyUrl = ""    
+    let mutable program = No
+    let mutable year = 0
+    let mutable group = ""
+
+// First page
 let indexHandler () =
     let facultyList = get_faculty_list ()
+    CurrentConfiguration.facAndUrl <- facultyList
     let view = facultyList |> List.map snd |> faculties
     htmlView view
 
@@ -25,6 +40,7 @@ let selectFacultyHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
         task {
             let! model = ctx.BindFormAsync<web.Models.Faculty>()
+            CurrentConfiguration.facultyUrl <- model.Faculty
             return! redirectTo false Urls.year next ctx
         }
 
