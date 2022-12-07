@@ -13,18 +13,20 @@ module Urls =
     let year = "/year"
 
 module CurrentConfiguration =
-    type Program =
-    | Bacheor
-    | Magistrate
-    | FullGraduate
-    | No
-
+    
     let mutable allAboutFaculty = []
+    let mutable currentStudyProgram = { name = ""; programs = [] }
     let mutable urlAndFac = []
     let mutable facultyUrl = ""    
-    let mutable program = No
-    let mutable year = 0
     let mutable group = ""
+
+    let getAllAboutFaculty () = allAboutFaculty 
+
+// USE ONLY THIS TO COMPARE NAMES FROM REQUESTS
+let namesEqual (n1 : string) (n2 : string) =
+    let toNormalForm s = 
+        s |> Seq.toList |> List.filter (fun x -> x <> ' ' && x <> '\n' && x <> '\r' && x <> '\t')
+    (toNormalForm n1) = (toNormalForm n2)
 
 // First page
 let indexHandler () =
@@ -63,12 +65,22 @@ let studyProgramHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
         task {
             let! model = ctx.BindFormAsync<web.Models.StudyProgram>()
-            let program = CurrentConfiguration.allAboutFaculty |> List.find (fun x -> x.name = model.StudyProgram)
+            let a = CurrentConfiguration.allAboutFaculty
+            let program = a |> List.find (fun x -> namesEqual x.name model.StudyProgram)
+            CurrentConfiguration.currentStudyProgram <- program
             let view = program.programs |> List.map (fun x -> x.name) |> studyDirection 
-            return! htmlView view next ctx 
+            return! htmlView view next ctx
         }
 
-let app : HttpFunc -> Http.HttpContext -> HttpFuncResult = compose (route "/") (Successful.OK "A")
+let studyDirectionHandler =
+    fun (next : HttpFunc) (ctx : HttpContext) ->
+        task {
+            let! model = ctx.BindFormAsync<web.Models.StudyDirection>()
+            let p = CurrentConfiguration.currentStudyProgram.programs
+            let directon = p |> List.find (fun x -> namesEqual model.StudyDirection x.name)
+            let view = directon.data |> List.map fst |> years
+            return! htmlView view next ctx
+        }
 
 let webApp : HttpFunc -> Http.HttpContext -> HttpFuncResult =
     choose [
@@ -81,6 +93,7 @@ let webApp : HttpFunc -> Http.HttpContext -> HttpFuncResult =
             choose [
                 route "/input" >=> inputHandler
                 route "/studyProgram" >=> studyProgramHandler
+                route "/studyDirection" >=> studyDirectionHandler
                 route Urls.faculty >=> selectFacultyHandler
             ]
         setStatusCode 404 >=> text "Not Found" ]

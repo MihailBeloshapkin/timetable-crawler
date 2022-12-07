@@ -13,3 +13,6 @@ type Input =
 
 [<CLIMutable>]
 type StudyProgram = { StudyProgram : string }
+
+[<CLIMutable>]
+type StudyDirection = { StudyDirection : string }

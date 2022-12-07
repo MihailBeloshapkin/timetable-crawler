@@ -51,6 +51,18 @@ let studyDirection data =
     [
         partial ()  
         form [ _action "/studyDirection"; _method "POST"] [
+          select [ _name "StudyDirection" ] [ 
+              for i in data -> option [] [ str i ]
+          ]
+          input [ _type "submit" ]
+      ]
+    ]
+    |> layout
+
+let years data =
+    [
+        partial ()  
+        form [ _action "/yearOfAdmisison"; _method "POST"] [
           select [ _name "StudyProgram" ] [ 
               for i in data -> option [] [ str i ]
           ]
