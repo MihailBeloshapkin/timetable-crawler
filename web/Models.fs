@@ -1,10 +1,7 @@
 module web.Models
 
 [<CLIMutable>]
-type Faculty =
-    {
-        Faculty : string
-    }
+type Faculty = { Faculty : string }
 
 [<CLIMutable>]
 type Input =
@@ -13,3 +10,6 @@ type Input =
         Speciality : string
         Year : string
     }
+
+[<CLIMutable>]
+type StudyProgram = { StudyProgram : string }

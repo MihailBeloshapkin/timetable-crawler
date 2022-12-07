@@ -18,7 +18,7 @@ type StudyProgram = {
     programs : list<StudyDirection>
 }
 
-let process_get_request (url : string) =
+let processGetRequest (url : string) =
     async {
         try
             let! response = client.GetAsync(url) |> Async.AwaitTask
@@ -57,9 +57,15 @@ let getSpecInfo html =
           }
         | _ -> None
 
+    let getName h = 
+        [for matches in (Regex("href=\"#studyProgramLevel[0-9]\">([^0-9]+)</a>", RegexOptions.Compiled)
+                     .Matches(h) : MatchCollection) -> matches.Groups.[1].Value]
+
+
     let doc = new HtmlDocument()
     doc.LoadHtml html
-    
+    let name = getName html
+    incr ind
     try
       doc.DocumentNode.SelectNodes("//li[@class='common-list-item row']")
         .Select(helper)
@@ -67,31 +73,43 @@ let getSpecInfo html =
       |> Seq.toList
       |> List.fold (fun acc x -> match x with | Some x -> acc @ [x] | None -> acc) []
       |> (fun l -> 
-          Some { 
-            name = string !ind
-            programs = l
-          })  
-    with 
+          match name with
+          | [ n ] ->
+            Some { 
+              name = n
+              programs = l
+            }
+          | _ -> None
+        )  
+    with
     | _ -> None
 
 // Get base elements on the chosen faculty page.
-let getAllSpecs html =
-    let doc = new HtmlDocument()
-    doc.LoadHtml html
-    let studyPrograms = 
-      doc.DocumentNode.SelectNodes("//div[@class='panel panel-default']")
-        .Select(fun t -> t.InnerHtml)
-        .ToList() |> Seq.toList
-    studyPrograms
-    |> List.map getSpecInfo
+let getAllSpecs url =
+    async {
+        let! response = processGetRequest url
+        match response with
+        | Some html ->
+          let doc = new HtmlDocument()
+          doc.LoadHtml html
+          let studyPrograms = 
+            doc.DocumentNode.SelectNodes("//div[@class='panel panel-default']")
+              .Select(fun t -> t.InnerHtml)
+              .ToList()
+          let result =
+            studyPrograms |> Seq.toList
+            |> List.map getSpecInfo
+            |> List.fold (fun acc x -> match x with | Some x -> acc @ [x] | None -> acc) []
+          return result
+        | _ -> return []
+    } |> Async.RunSynchronously
 
 let ex =
     async {
-        let! data = process_get_request "https://timetable.spbu.ru/MATH"
+        let! data = processGetRequest base_url
         let hrefs = 
             match data with 
             | Some x -> 
-              let a = getAllSpecs x
               get_tags x 
               |> List.filter (fun (s, _) -> String.length s > 0 && s.[0] = '/')
               |> List.map (fun (s, name) -> (String.concat "" [base_url; s]), name)
@@ -100,7 +118,7 @@ let ex =
             hrefs
             |> List.map 
                 (fun (s, name) -> 
-                    let html = process_get_request s |> Async.RunSynchronously
+                    let html = processGetRequest s |> Async.RunSynchronously
                     (html, name))
             |> List.fold (fun acc -> function | Some h, name -> (name, h) :: acc | _ -> acc) []
             |> List.rev
@@ -111,19 +129,21 @@ let ex =
 let get_faculty_list () =
     let hrefs = ex |> Async.RunSynchronously
     async {
-        let! data = process_get_request base_url
+        let! data = processGetRequest base_url
         return 
             match data with 
             | Some x -> 
               get_tags x 
               |> List.filter (fun (s, _) -> String.length s > 0 && s.[0] = '/')
+              |> List.map (fun (s, n) -> (String.concat "" [base_url; s], n))
             | _ -> []
     } |> Async.RunSynchronously
 
-
-
+(*
 [<EntryPoint>]
 let main argv =
+    let a = getAllSpecs "https://timetable.spbu.ru/MATH"
     let l = get_faculty_list ()
-    let hrefs = ex |> Async.RunSynchronously
+    // let hrefs = ex |> Async.RunSynchronously
     0
+*)

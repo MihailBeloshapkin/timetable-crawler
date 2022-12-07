@@ -29,15 +29,32 @@ let flist fl =
 
 let faculties facList =
     [
-        partial()
+        partial ()
         p [] [ encodedText "Input your data" ]
         // inputData ()
         flist facList
     ] |> layout
 
-let year () =
+let studyProgram data =
     [
-        partial()
-        p [] [ encodedText "Right!" ]
+        partial ()  
+        form [ _action "/studyProgram"; _method "POST"] [
+          select [ _name "StudyProgram" ] [ 
+              for i in data -> option [] [ str i ]
+          ]
+          input [ _type "submit" ]
+      ]
+    ]
+    |> layout
+
+let studyDirection data =
+    [
+        partial ()  
+        form [ _action "/studyDirection"; _method "POST"] [
+          select [ _name "StudyProgram" ] [ 
+              for i in data -> option [] [ str i ]
+          ]
+          input [ _type "submit" ]
+      ]
     ]
     |> layout
