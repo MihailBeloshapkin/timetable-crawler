@@ -33,6 +33,54 @@ let processGetRequest (url : string) =
 
 let ind = ref 0
 
+let getTt html =
+    let helper (el : HtmlNode) =
+        let doc = new HtmlDocument()
+        doc.LoadHtml el.InnerHtml
+        let date1 = 
+          doc.DocumentNode.SelectNodes("//div[@class='col-sm-2 studyevent-datetime']")
+
+        // let group = 
+
+        let date = 
+          date1.Select(fun t -> [for matches in (Regex(">([^#<>]+)</span>", RegexOptions.Compiled)
+                                .Matches(t.InnerHtml) : MatchCollection) -> matches.Groups.[1].Value]
+                      ) |> Seq.toList
+        let subject = 
+          doc.DocumentNode.SelectNodes("//div[@class='col-sm-4 studyevent-subject']")
+              .Select(fun t -> [for matches in (Regex(">([^#<>]+)</span>", RegexOptions.Compiled)
+                                .Matches(t.InnerHtml) : MatchCollection) -> matches.Groups.[1].Value]
+              ) |> Seq.toList
+        let loc = 
+          doc.DocumentNode.SelectNodes("//div[@class='col-sm-3 studyevent-locations']")
+             .Select(fun t -> [for matches in (Regex("<span class=\"hoverable-link\">([^#<>]+)</span>", RegexOptions.Compiled)
+                                .Matches(t.InnerHtml) : MatchCollection) -> matches.Groups.[1].Value]
+             ) |> Seq.toList
+        let edu = 
+          doc.DocumentNode.SelectNodes("//div[@class='col-sm-3 studyevent-educators']")
+             .Select(fun t -> [for matches in (Regex("<a href=\"/EducatorEvents/[0-9]{4}\">([^#<>]+)</a>", RegexOptions.Compiled)
+                                .Matches(t.InnerHtml) : MatchCollection) -> matches.Groups.[1].Value]
+             ) |> Seq.toList
+        let len = List.length 
+        let hd = List.head
+        match (date, subject, edu) with
+        | ([ d ], [ s ], [ e ]) when len d = 1 && len s = 1 && len e = 1 -> Some (hd d, hd s, hd e)
+        | _ -> None
+        
+    let doc = new HtmlDocument()
+    doc.LoadHtml html
+    try
+      let l = doc.DocumentNode
+                 .SelectNodes("//li[@class='common-list-item row']")
+                 .Select(helper)
+                 .ToList()
+                 |> Seq.toList
+                 |> List.fold (fun acc x -> match x with | Some x -> acc @ [x] | None -> acc) []
+      l
+    with
+    | _ -> []
+    
+
 // Get faculty names and their url's.
 let get_tags html =
     [for matches in (Regex("<a href\s*=\s*\"?([^\"]+)\"?\s*>([^\"]+)</a>", RegexOptions.Compiled)
@@ -61,11 +109,10 @@ let getSpecInfo html =
         [for matches in (Regex("href=\"#studyProgramLevel[0-9]\">([^0-9]+)</a>", RegexOptions.Compiled)
                      .Matches(h) : MatchCollection) -> matches.Groups.[1].Value]
 
-
     let doc = new HtmlDocument()
     doc.LoadHtml html
     let name = getName html
-    incr ind
+
     try
       doc.DocumentNode.SelectNodes("//li[@class='common-list-item row']")
         .Select(helper)
@@ -110,6 +157,7 @@ let ex =
         let hrefs = 
             match data with 
             | Some x -> 
+              let a = x
               get_tags x 
               |> List.filter (fun (s, _) -> String.length s > 0 && s.[0] = '/')
               |> List.map (fun (s, name) -> (String.concat "" [base_url; s]), name)
@@ -127,7 +175,6 @@ let ex =
 
 // Get list of faculties
 let get_faculty_list () =
-    let hrefs = ex |> Async.RunSynchronously
     async {
         let! data = processGetRequest base_url
         return 
@@ -139,9 +186,42 @@ let get_faculty_list () =
             | _ -> []
     } |> Async.RunSynchronously
 
+
+let get_group_page_info url =
+    async {
+        let! data = processGetRequest <| String.concat "" [base_url; url]
+        return data
+    } |> Async.RunSynchronously
+
+let get_group_hrefs html =
+    [for matches in (Regex("onclick=\"window.location.href=([^\"]+)\">", RegexOptions.Compiled)
+    .Matches(html) : MatchCollection) -> matches.Groups.[1].Value]
+
+let downloadTimeTableForAllGroups html =
+    let result = 
+      html 
+      |> get_group_hrefs 
+      |> List.map
+        (fun u -> 
+            let fullAddr =
+                u 
+                |> String.filter (fun c -> c <> ''')
+                |> (fun s -> String.concat "" [base_url; s])
+            async {
+              let! newHtml = processGetRequest fullAddr
+              return newHtml 
+            } |> Async.RunSynchronously
+        )
+      |> List.fold (fun acc x -> match x with Some h -> h :: acc | _ -> acc) []
+      // |> List.map getTt
+    let tt = result |> List.map getTt
+    tt
+
 (*
 [<EntryPoint>]
 let main argv =
+   // let p = getTt d
+    let hrefs = ex |> Async.RunSynchronously
     let a = getAllSpecs "https://timetable.spbu.ru/MATH"
     let l = get_faculty_list ()
     // let hrefs = ex |> Async.RunSynchronously

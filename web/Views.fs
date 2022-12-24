@@ -19,6 +19,10 @@ let layout (content: XmlNode list) =
 let partial () =
     h1 [] [ encodedText "Spbu Timetable" ]
 
+let partialWithArg data =
+    h1 [] [ encodedText <| String.concat ". " ["Spbu Timetable"; data] ]
+
+
 let flist fl =
     form [ _action "/selectFaculty"; _method "POST"] [
         select [ _name "Faculty" ] [ 
@@ -35,9 +39,9 @@ let faculties facList =
         flist facList
     ] |> layout
 
-let studyProgram data =
+let studyProgram data h =
     [
-        partial ()  
+        partialWithArg h
         form [ _action "/studyProgram"; _method "POST"] [
           select [ _name "StudyProgram" ] [ 
               for i in data -> option [] [ str i ]
@@ -47,9 +51,9 @@ let studyProgram data =
     ]
     |> layout
 
-let studyDirection data =
+let studyDirection data h =
     [
-        partial ()  
+        partialWithArg h  
         form [ _action "/studyDirection"; _method "POST"] [
           select [ _name "StudyDirection" ] [ 
               for i in data -> option [] [ str i ]
@@ -59,14 +63,31 @@ let studyDirection data =
     ]
     |> layout
 
-let years data =
+let years data h =
     [
-        partial ()  
-        form [ _action "/yearOfAdmisison"; _method "POST"] [
-          select [ _name "StudyProgram" ] [ 
+        partialWithArg h  
+        form [ _action "/yearOfAdmission"; _method "POST"] [
+          select [ _name "Year" ] [ 
               for i in data -> option [] [ str i ]
           ]
           input [ _type "submit" ]
       ]
+    ]
+    |> layout
+
+let formOneTable data = 
+    table [] [
+        for (f, s, t) in data ->
+                tr [] [ 
+                    td [] [ str f ]
+                    td [] [ str s ]
+                    td [] [ str t ]
+                ]
+    ]
+
+let timetable data =
+    [
+        for i in data -> 
+            formOneTable i
     ]
     |> layout

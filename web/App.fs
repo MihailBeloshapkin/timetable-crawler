@@ -16,6 +16,7 @@ module CurrentConfiguration =
     
     let mutable allAboutFaculty = []
     let mutable currentStudyProgram = { name = ""; programs = [] }
+    let mutable currentStudyDirection = { name = ""; data = [] }
     let mutable urlAndFac = []
     let mutable facultyUrl = ""    
     let mutable group = ""
@@ -40,9 +41,11 @@ let indexYearHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
       let data = getAllSpecs CurrentConfiguration.facultyUrl    
       CurrentConfiguration.allAboutFaculty <- data
-      let view = data |> List.map (fun x -> x.name) |> studyProgram 
-      htmlView view next ctx
+      let view = data |> List.map (fun x -> x.name) |> studyProgram  
+      // let name = CurrentConfiguration.urlAndFac |> List.find (fun x -> )
+      htmlView (view "") next ctx
 
+// Select faculty
 let selectFacultyHandler =
     fun (next : HttpFunc) (ctx : HttpContext) ->
         task {
@@ -69,7 +72,7 @@ let studyProgramHandler =
             let program = a |> List.find (fun x -> namesEqual x.name model.StudyProgram)
             CurrentConfiguration.currentStudyProgram <- program
             let view = program.programs |> List.map (fun x -> x.name) |> studyDirection 
-            return! htmlView view next ctx
+            return! htmlView (view program.name) next ctx
         }
 
 let studyDirectionHandler =
@@ -78,7 +81,21 @@ let studyDirectionHandler =
             let! model = ctx.BindFormAsync<web.Models.StudyDirection>()
             let p = CurrentConfiguration.currentStudyProgram.programs
             let directon = p |> List.find (fun x -> namesEqual model.StudyDirection x.name)
+            CurrentConfiguration.currentStudyDirection <- directon
             let view = directon.data |> List.map fst |> years
+            return! htmlView (view "Years") next ctx
+        }
+
+let yearHandler =
+    fun (next : HttpFunc) (ctx : HttpContext) ->
+        task {
+            let! model = ctx.BindFormAsync<web.Models.Year>()
+            let p = CurrentConfiguration.currentStudyDirection.data
+            let url = p |> List.find (fun (y, _) -> namesEqual y model.Year) |> snd
+            let d = get_group_page_info url
+            let data = match d with | Some x -> downloadTimeTableForAllGroups x | _ -> []
+            let view = timetable data
+            // return! redirectTo false "/" next ctx
             return! htmlView view next ctx
         }
 
@@ -94,6 +111,8 @@ let webApp : HttpFunc -> Http.HttpContext -> HttpFuncResult =
                 route "/input" >=> inputHandler
                 route "/studyProgram" >=> studyProgramHandler
                 route "/studyDirection" >=> studyDirectionHandler
+                route "/yearOfAdmission" >=> yearHandler
                 route Urls.faculty >=> selectFacultyHandler
             ]
-        setStatusCode 404 >=> text "Not Found" ]
+        setStatusCode 404 >=> text "Not Found" 
+    ]
